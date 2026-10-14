@@ -32,6 +32,9 @@ dv [OPTIONS] NAME...
 
 Exit status matches `which`: 0 if every name was found, 1 if any was not, 2 on a usage error.
 Output is plain when it is not a terminal, and colour respects `NO_COLOR`.
+File names, symlink targets and package names can contain terminal escape sequences, so text output shows control characters as visible escapes such as `\u{1b}`.
+With `-1`, the path is printed byte-for-byte when piped (for scripts) and escaped when stdout is a terminal.
+JSON output escapes control characters as JSON requires.
 
 There are no subcommands, so any name can be looked up, including one called `init` or `doctor`.
 Future modes will be flags.

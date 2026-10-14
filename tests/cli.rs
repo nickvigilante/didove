@@ -305,3 +305,56 @@ fn expand_tilde_env_accepts_the_usual_spellings() {
             .code(1);
     }
 }
+
+/// A directory whose name contains a terminal escape sequence, with `tool` inside.
+fn hostile_fixture() -> (Fx, std::ffi::OsString) {
+    let fx = Fx::new();
+    let dir = fx.exe("bin\u{1b}[31mRED\u{1b}[0m/tool");
+    let path = fx.path([dir.parent().unwrap()]);
+    (fx, path)
+}
+
+#[test]
+fn escape_sequences_in_names_cannot_reach_the_terminal() {
+    // CLICOLOR_FORCE makes anstream pass escapes through, as it does on a real terminal.
+    let (fx, path) = hostile_fixture();
+    let out = dv(&fx, path)
+        .arg("tool")
+        .env("CLICOLOR_FORCE", "1")
+        .output()
+        .unwrap();
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(
+        !text.contains("\u{1b}[31mRED"),
+        "raw sequence leaked: {text:?}"
+    );
+    assert!(
+        text.contains("\\u{1b}[31mRED"),
+        "expected a visible escape: {text:?}"
+    );
+}
+
+#[test]
+fn first_keeps_exact_bytes_when_piped_so_scripts_are_not_corrupted() {
+    let (fx, path) = hostile_fixture();
+    let out = dv(&fx, path).args(["-1", "tool"]).output().unwrap();
+    let want = format!("{}\n", fx.p("bin\u{1b}[31mRED\u{1b}[0m/tool").display());
+    assert_eq!(String::from_utf8(out.stdout).unwrap(), want);
+}
+
+#[test]
+fn json_escapes_control_characters() {
+    let (fx, path) = hostile_fixture();
+    let out = dv(&fx, path).args(["--json", "tool"]).output().unwrap();
+    assert!(
+        !out.stdout.contains(&0x1b),
+        "JSON must not contain raw escape bytes"
+    );
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert!(
+        v["results"][0]["matches"][0]["path"]
+            .as_str()
+            .unwrap()
+            .contains('\u{1b}')
+    );
+}

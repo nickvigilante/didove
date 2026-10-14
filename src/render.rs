@@ -3,6 +3,8 @@
 //! The JSON shape is a public contract, documented in `docs/json-output.md`.
 //! Bump [`JSON_VERSION`] if a field is removed or changes meaning.
 
+use std::borrow::Cow;
+use std::ffi::OsStr;
 use std::io::{self, Write};
 use std::path::Path;
 
@@ -34,7 +36,7 @@ pub fn render_text<W: Write>(w: &mut W, results: &[NameResult]) -> io::Result<()
         .filter(|r| r.found() || !r.skipped.is_empty())
     {
         let indent = if headers {
-            writeln!(w, "{}", r.name.to_string_lossy())?;
+            writeln!(w, "{}", safe(&r.name))?;
             "  "
         } else {
             ""
@@ -50,7 +52,7 @@ pub fn render_text<W: Write>(w: &mut W, results: &[NameResult]) -> io::Result<()
 }
 
 fn render_match<W: Write>(w: &mut W, m: &Match, indent: &str) -> io::Result<()> {
-    let path = m.path.display();
+    let path = safe(m.path.as_os_str());
     if m.winner {
         writeln!(w, "{indent}{WINNER}* {path}{WINNER:#}")?;
     } else {
@@ -80,10 +82,10 @@ fn render_hop<W: Write>(w: &mut W, hop: &Hop, indent: &str) -> io::Result<()> {
         writeln!(
             w,
             "{indent}{BROKEN}-> {} (broken: target does not exist){BROKEN:#}",
-            hop.resolved.display()
+            safe(hop.resolved.as_os_str())
         )
     } else {
-        writeln!(w, "{indent}-> {}", hop.resolved.display())
+        writeln!(w, "{indent}-> {}", safe(hop.resolved.as_os_str()))
     }
 }
 
@@ -92,7 +94,7 @@ fn render_skipped<W: Write>(w: &mut W, s: &Skipped, indent: &str) -> io::Result<
     writeln!(
         w,
         "{indent}{WARN}! {} ({why}, skipped){WARN:#}",
-        s.path.display()
+        safe(s.path.as_os_str())
     )
 }
 
@@ -107,18 +109,59 @@ fn reason_text(o: Outcome) -> &'static str {
 
 /// `homebrew: ripgrep 14.1.1`, with any detail in parentheses.
 fn describe(p: &Provenance) -> String {
-    let mut s = format!("{}: {}", p.source, p.package);
+    let mut s = format!("{}: {}", p.source, safe(OsStr::new(&p.package)));
     if let Some(v) = &p.version {
         s.push(' ');
-        s.push_str(v);
+        s.push_str(&safe(OsStr::new(v)));
     }
     if let Some(d) = &p.detail {
-        s.push_str(&format!(" ({d})"));
+        s.push_str(&format!(" ({})", safe(OsStr::new(d))));
     }
     s
 }
 
+/// Make untrusted text safe to print to a terminal.
+///
+/// File names, symlink targets and package metadata are controlled by whoever can write to
+/// a PATH directory or a package, and may contain escape sequences that rewrite the screen
+/// or set the window title. Control characters become visible escapes such as `\u{1b}`.
+/// Invalid UTF-8 becomes U+FFFD, as it does in the JSON output.
+pub fn safe(s: &OsStr) -> Cow<'_, str> {
+    let text = s.to_string_lossy();
+    if !text.chars().any(char::is_control) {
+        return text;
+    }
+    Cow::Owned(
+        text.chars()
+            .flat_map(|c| {
+                let escaped: Box<dyn Iterator<Item = char>> = if c.is_control() {
+                    Box::new(c.escape_default())
+                } else {
+                    Box::new(std::iter::once(c))
+                };
+                escaped
+            })
+            .collect(),
+    )
+}
+
 // ---- JSON ----
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn safe_escapes_control_characters_and_leaves_the_rest() {
+        assert_eq!(safe(OsStr::new("/usr/bin/tool")), "/usr/bin/tool");
+        assert_eq!(
+            safe(OsStr::new("/opt/caf\u{e9}/\u{65e5}\u{672c}")),
+            "/opt/caf\u{e9}/\u{65e5}\u{672c}"
+        );
+        assert_eq!(safe(OsStr::new("a\x1b[31mb")), "a\\u{1b}[31mb");
+        assert_eq!(safe(OsStr::new("a\x07b\nc\u{9b}")), "a\\u{7}b\\nc\\u{9b}");
+    }
+}
 
 #[derive(Serialize)]
 struct JsonOutput {

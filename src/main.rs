@@ -1,5 +1,6 @@
 use std::ffi::OsString;
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
+use std::os::unix::ffi::OsStrExt;
 use std::process::ExitCode;
 
 use clap::Parser;
@@ -68,7 +69,7 @@ fn run(cli: &Cli) -> io::Result<ExitCode> {
         .collect();
 
     for r in results.iter().filter(|r| !r.found()) {
-        eprintln!("dv: {}: not found in PATH", r.name.to_string_lossy());
+        eprintln!("dv: {}: not found in PATH", render::safe(&r.name));
     }
 
     if cli.json {
@@ -77,8 +78,15 @@ fn run(cli: &Cli) -> io::Result<ExitCode> {
         out.flush()?;
     } else if cli.first {
         let mut out = io::stdout().lock();
+        // Scripts need the exact bytes; a person at a terminal needs them made safe.
+        let at_terminal = io::stdout().is_terminal();
         for m in results.iter().filter_map(|r| r.matches.first()) {
-            writeln!(out, "{}", m.path.display())?;
+            if at_terminal {
+                writeln!(out, "{}", render::safe(m.path.as_os_str()))?;
+            } else {
+                out.write_all(m.path.as_os_str().as_bytes())?;
+                out.write_all(b"\n")?;
+            }
         }
         out.flush()?;
     } else {
