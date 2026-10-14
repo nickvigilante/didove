@@ -1,0 +1,9 @@
+---
+source: tests/cli.rs
+expression: "stdout(&fx, &out)"
+---
+* [ROOT]/opt/homebrew/bin/rg
+    -> [ROOT]/opt/homebrew/Cellar/ripgrep/14.1.1/bin/rg
+    homebrew: ripgrep 14.1.1
+  [ROOT]/usr/bin/rg (shadowed)
+! [ROOT]/noexec/rg (not executable, skipped)

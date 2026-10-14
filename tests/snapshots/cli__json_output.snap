@@ -1,0 +1,58 @@
+---
+source: tests/cli.rs
+expression: text
+---
+{
+  "version": 1,
+  "results": [
+    {
+      "name": "rg",
+      "found": true,
+      "matches": [
+        {
+          "path": "[ROOT]/opt/homebrew/bin/rg",
+          "path_index": 0,
+          "winner": true,
+          "duplicate_of": null,
+          "symlink_chain": [
+            {
+              "path": "[ROOT]/opt/homebrew/bin/rg",
+              "target": "../Cellar/ripgrep/14.1.1/bin/rg",
+              "resolved": "[ROOT]/opt/homebrew/Cellar/ripgrep/14.1.1/bin/rg",
+              "broken": false
+            }
+          ],
+          "real_path": "[ROOT]/opt/homebrew/Cellar/ripgrep/14.1.1/bin/rg",
+          "provenance": {
+            "source": "homebrew",
+            "package": "ripgrep",
+            "version": "14.1.1",
+            "detail": null
+          }
+        },
+        {
+          "path": "[ROOT]/usr/bin/rg",
+          "path_index": 2,
+          "winner": false,
+          "duplicate_of": null,
+          "symlink_chain": [],
+          "real_path": "[ROOT]/usr/bin/rg",
+          "provenance": null
+        }
+      ],
+      "skipped": [
+        {
+          "path": "[ROOT]/noexec/rg",
+          "path_index": 1,
+          "reason": "not_executable"
+        }
+      ]
+    },
+    {
+      "name": "nope",
+      "found": false,
+      "matches": [],
+      "skipped": []
+    }
+  ]
+}
