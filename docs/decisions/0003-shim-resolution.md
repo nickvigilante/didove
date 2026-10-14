@@ -1,6 +1,6 @@
 # 3. Shim resolution for mise, asdf and pyenv
 
-Status: proposed, awaiting review.
+Status: accepted.
 
 ## Context
 
@@ -95,7 +95,8 @@ The brief says `dv` never executes the binaries it inspects.
 Run mode breaks that rule on purpose, so it is opt-in, and it is limited:
 
 - It runs only the manager's own documented, read-only `which` subcommand, never the program the user asked about, and never with the user's arguments.
-- It runs with a timeout (2 seconds to start with) and captures output, so a hanging plugin cannot hang `dv`.
+- It runs with a timeout of 2 seconds and captures output, so a hanging plugin cannot hang `dv`.
+  A manager normally answers in tens of milliseconds, so this is generous; make it adjustable if anyone needs more.
 - It runs in the current directory with the current environment, because the answer depends on both.
 - Be aware that `pyenv which` sources hook scripts from the pyenv plugins directory and `asdf which` can run plugin scripts, so it executes code the user has installed.
   That is the same exposure as running the shimmed command, but it is code `dv` triggers, so the documentation must say so.
@@ -149,8 +150,8 @@ The pyenv resolver is written so that rbenv and nodenv, which share its design, 
 2. **pyenv `files` mode**, the best-understood algorithm, checked against `pyenv which` on this machine.
 3. **asdf `files` mode and asdf `run`.**
 4. **mise `run` mode.**
-5. **mise `files` mode last, and only if it proves worth the approximations.**
-   Until then, `--shims files` on a mise shim reports `unresolved` with the reason, and points at `--shims run`.
+   mise has no `files` mode: `--shims files` on a mise shim reports `unresolved` with the reason and points at `--shims run`.
+   Revisit this only if `run` mode proves too slow or too risky in practice.
 
 Each step is a separate PR.
 
@@ -158,8 +159,9 @@ Each step is a separate PR.
 
 - Each resolver gets a miniature fake tree, as the provenance detectors have (a fake `~/.pyenv` with shims, versions and a version file), so the tests pass on any machine.
 - The pyenv fake tree can be checked against real pyenv, because pyenv is a bash script that CI can install from git.
-  That differential test, comparing `files` against `run` on the same tree, is the best protection against the fast mode drifting from the manager, and I would add it for asdf and mise as they land.
-- Neither manager is installed here, so asdf and mise `files` mode would be written against documentation alone until that CI job exists.
+  That differential test, comparing `files` against `run` on the same tree, is the best protection against the fast mode drifting from the manager, and I would add it for asdf when its `files` mode lands.
+- asdf is not installed here, so its `files` mode would be written against documentation alone until that CI job exists.
+  mise has no `files` mode, so only its `run` mode needs a real mise to test against.
 
 ## Verify before building
 
@@ -169,9 +171,14 @@ Each step is a separate PR.
 4. What `asdf shimversions` prints, and whether it is a better source than parsing the shim.
 5. The multi-version file format for pyenv (whitespace or newline separated).
 
-## Open questions
+## Resolved questions
 
-1. Is `--shims files|run|off` the right shape, or would you rather have a boolean `--exact`?
-2. Is a 2-second timeout right for run mode?
-3. Should the mise `files` mode exist at all, or is `run` mode enough for mise?
-4. Is it acceptable that run mode executes manager hooks and plugin scripts, given that it is opt-in and documented?
+1. **Flag shape.**
+   `--shims files|run|off`, because it can also turn shim handling off, which a boolean `--exact` cannot.
+2. **Timeout.**
+   2 seconds, adjustable later if needed.
+3. **mise `files` mode.**
+   Not built.
+   mise is `run` mode only for now, because its config (templates, trust, per-backend layout) cannot be read reliably and its own documentation says to ask it.
+4. **Running manager hooks and plugin scripts in `run` mode.**
+   Accepted, because the mode is opt-in and the documentation will say what it runs.
