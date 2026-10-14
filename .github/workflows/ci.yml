@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: dtolnay/rust-toolchain@1.88.0
+        id: msrv
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo +stable fmt --check
+      - name: Clippy
+        run: cargo +stable clippy --all-targets --locked -- -D warnings
+      - name: Test
+        run: cargo +stable test --locked
+      - name: MSRV (1.88)
+        run: cargo +1.88.0 check --all-targets --locked
+
+  # Branch protection requires only this job, so the matrix can change without touching the rules.
+  ci:
+    name: ci
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every matrix job to have passed
+        run: |
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "test matrix result: ${{ needs.test.result }}"
+            exit 1
+          fi
