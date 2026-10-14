@@ -1,6 +1,6 @@
 # 1. Walk PATH ourselves instead of using the `which` crate
 
-Status: proposed, awaiting review.
+Status: accepted.
 
 ## Context
 
@@ -192,12 +192,18 @@ What the walker records per entry (and what `--doctor` will reuse): index, the e
 - If we later wanted Windows support, `which` handles `PATHEXT` and `.exe` casing, which the walker does not.
 - If you would rather have `libc` than `rustix`, say so and the walker moves over with one `unsafe` call.
 
-## Open questions
+## Resolved questions
 
-1. Is not expanding `~` right?
-   It matches zsh and macOS `execvp` but not bash.
-2. Should `Absent` be split into missing-directory and missing-file (one extra `stat` per miss), or left to `--doctor`?
-3. Is `rustix` (safe, three crates) preferred over `libc` (one `unsafe` call, one crate)?
+1. **Tilde expansion.**
+   Off by default, matching `execvp` and zsh, with an opt-in `--expand-tilde` flag and a `DV_EXPAND_TILDE` environment variable.
+   A shell hook cannot change how `dv` searches, because `dv` only sees the PATH string; the bash hook would export the variable.
+2. **Missing directory versus missing file.**
+   Recorded as different outcomes (`DirMissing`, `NoSuchFile`), plus `NotADirectory` for an entry that is a file.
+   The extra `stat` happens only when diagnosing, which the plain listing and `-1` do not do.
+   `--doctor` will.
+3. **`rustix` or `libc`.**
+   `rustix`, for the safe API (the crate is `#![forbid(unsafe_code)]`) and so that behaviour does not depend on how a given libc emulates `AT_EACCESS`.
+   The price is two extra crates on Linux.
 
 ## Reproducing
 
