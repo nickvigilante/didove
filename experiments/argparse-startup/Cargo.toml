@@ -1,0 +1,19 @@
+[package]
+name = "argparse-startup"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+description = "Throwaway: does clap cost more than ~0.1 ms of startup over lexopt?"
+
+[dependencies]
+clap = { version = "4", features = ["derive", "env"] }
+lexopt = "0.3"
+
+[workspace]
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

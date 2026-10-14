@@ -42,3 +42,23 @@ The raw JSON is not committed.
 | sh-command-v:missing | 0.20 | 0.04 | 0.19 | 0.15 | - |
 | sh-baseline | 0.19 | 0.03 | 0.19 | 0.15 | - |
 | true-baseline | 0.17 | 0.05 | 0.16 | 0.12 | - |
+
+## Argument parsing (clap vs lexopt)
+
+`results/argparse-macos.json`
+
+| command | mean ms | sd | median ms | min ms | instructions |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| bare | 1.52 | 0.15 | 1.49 | 1.29 | 12.9 M |
+| lexopt | 1.44 | 0.13 | 1.41 | 1.28 | 12.9 M |
+| clap | 1.44 | 0.10 | 1.43 | 1.29 | 13.2 M |
+| clap-help | 1.48 | 0.12 | 1.45 | 1.32 | 13.4 M |
+
+`results/argparse-linux.json`
+
+| command | mean ms | sd | median ms | min ms | instructions |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| bare | 0.10 | 0.03 | 0.09 | 0.06 | - |
+| lexopt | 0.10 | 0.03 | 0.09 | 0.05 | - |
+| clap | 0.12 | 0.02 | 0.12 | 0.09 | - |
+| clap-help | 0.13 | 0.02 | 0.12 | 0.09 | - |
