@@ -1,0 +1,31 @@
+[package]
+name = "path-search"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+description = "Throwaway experiment for docs/decisions/0001-path-search.md"
+
+[dependencies]
+rustix = { version = "1", features = ["fs"] }
+which = "8.0.6"
+tempfile = { version = "3", optional = true }
+
+[features]
+scenarios = ["dep:tempfile"]
+
+[[example]]
+name = "matrix"
+required-features = ["scenarios"]
+
+[[test]]
+name = "edge_cases"
+required-features = ["scenarios"]
+
+[workspace]
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

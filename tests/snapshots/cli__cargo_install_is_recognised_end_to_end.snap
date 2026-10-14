@@ -1,0 +1,6 @@
+---
+source: tests/cli.rs
+expression: "stdout(&fx, &out)"
+---
+* [ROOT]/cargo/bin/rg
+    cargo: ripgrep 14.1.0
